@@ -1,0 +1,62 @@
+// Frontend - index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multiplayer Video Robots</title>
+    <script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
+    <style>
+        body { text-align: center; font-family: Arial, sans-serif; }
+        #gameArea { position: relative; width: 800px; height: 400px; margin: 20px auto; background: lightgray; }
+        .avatar { width: 40px; height: 40px; position: absolute; border-radius: 50%; }
+        #youtubePlayer { width: 640px; height: 360px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Multiplayer Video Robots</h1>
+    <input type="text" id="videoUrl" placeholder="Enter YouTube Video URL">
+    <button onclick="changeVideo()">Load Video</button>
+    <div id="gameArea"></div>
+    <iframe id="youtubePlayer" frameborder="0" allowfullscreen></iframe>
+    <script>
+        const socket = io('https://your-server.com');
+        const gameArea = document.getElementById('gameArea');
+        const avatars = {};
+        let posX = 200;
+        
+        const userAvatar = document.createElement('div');
+        userAvatar.className = 'avatar';
+        userAvatar.style.background = 'blue';
+        gameArea.appendChild(userAvatar);
+        
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') posX -= 10;
+            if (e.key === 'ArrowRight') posX += 10;
+            userAvatar.style.left = posX + 'px';
+            socket.emit('move', { x: posX });
+        });
+        
+        socket.on('playerMoved', (data) => {
+            if (!avatars[data.id]) {
+                avatars[data.id] = document.createElement('div');
+                avatars[data.id].className = 'avatar';
+                avatars[data.id].style.background = 'red';
+                gameArea.appendChild(avatars[data.id]);
+            }
+            avatars[data.id].style.left = data.x + 'px';
+        });
+        
+        function changeVideo() {
+            const url = document.getElementById('videoUrl').value;
+            const videoId = new URL(url).searchParams.get("v");
+            document.getElementById('youtubePlayer').src = `https://www.youtube.com/embed/${videoId}?enablejsapi=1`;
+            socket.emit('videoChange', { videoId });
+        }
+        
+        socket.on('videoChange', (data) => {
+            document.getElementById('youtubePlayer').src = `https://www.youtube.com/embed/${data.videoId}?enablejsapi=1`;
+        });
+    </script>
+</body>
+</html>
